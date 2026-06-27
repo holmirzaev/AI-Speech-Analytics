@@ -49,7 +49,7 @@ PostgreSQL (Слой данных / Models)
 
 ### 1. Клонирование репозитория
 ```bash
-git clone [https://github.com/твой-юзернейм/monolith_analytics.git](https://github.com/твой-юзернейм/monolith_analytics.git)
+git clone [https://github.com/holmirzaev/monolith_analytics.git](https://github.com/holmirzaev/monolith_analytics.git)
 cd monolith_analytics
 ```
 
