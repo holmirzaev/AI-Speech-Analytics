@@ -1,0 +1,14 @@
+# Секреты и конфигурация
+.env
+.env.*
+
+# Кэш Python
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Базы данных и Docker мусор
+*.db
+*.sqlite3

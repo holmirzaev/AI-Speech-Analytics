@@ -2,6 +2,7 @@ from celery import Celery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
+import asyncio
 
 from app.config import settings
 from app.models import AnalysisTask
@@ -40,9 +41,11 @@ def process_audio_pipeline(task_id: str, file_path: str):
         whisper = WhisperEngine() # Подгрузит веса один раз (Singleton)
         transcript = whisper.transcribe(file_path)
         
-        # 3. Шаг ИИ-2: Структурированный анализ
+        # 3. Шаг ИИ-2: Структурированный асинхронный анализ
         analyzer = LLMAnalyzer()
-        analysis_result = analyzer.analyze_text(transcript)
+        
+        # Запускаем асинхронный метод внутри синхронного воркера Celery
+        analysis_result = asyncio.run(analyzer.analyze_text(transcript))
         
         # 4. Фиксация триумфа в БД
         task.status = "COMPLETED"

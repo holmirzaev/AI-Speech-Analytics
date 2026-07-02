@@ -22,6 +22,7 @@ async def upload_audio(file: UploadFile = File(...), db: AsyncSession = Depends(
     file_extension = os.path.splitext(file.filename)[1]
     saved_file_path = os.path.join(UPLOAD_DIR, f"{task_id}{file_extension}")
     
+    # 1. Сохраняем файл на диск
     try:
         with open(saved_file_path, "wb") as buffer:
             while chunk := await file.read(1024 * 64):
@@ -29,12 +30,21 @@ async def upload_audio(file: UploadFile = File(...), db: AsyncSession = Depends(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка сохранения файла: {str(e)}")
         
-    # Записываем в БД со статусом PENDING
+    # 2. Подготавливаем запись для БД со статусом PENDING
     new_task = AnalysisTask(id=task_id, status="PENDING", audio_path=saved_file_path)
     db.add(new_task)
-    await db.commit()
     
-    # Публикуем в очередь
+    # 3. Изолированная зона транзакции базы данных
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        if os.path.exists(saved_file_path):
+            os.remove(saved_file_path)
+        raise HTTPException(status_code=500, detail=f"Ошибка фиксации задачи в БД: {str(e)}")
+    
+    # 4. Чистая зона безопасности. База гарантированно сохранила запись.
+    # Celery-воркер теперь на 100% найдет задачу в Postgres, когда начнет работу.
     process_audio_pipeline.delay(task_id, saved_file_path)
     
     return TaskCreateResponse(
